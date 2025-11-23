@@ -1,9 +1,9 @@
 -- Add session_id column to messages table
 ALTER TABLE public.messages
-ADD COLUMN session_id UUID NOT NULL DEFAULT gen_random_uuid ();
+ADD COLUMN session_id UUID NOT NULL DEFAULT gen_random_uuid();
 
 -- Create index for faster session queries
-CREATE INDEX idx_messages_session_user ON public.messages (
+CREATE INDEX idx_messages_session_user ON public.messages(
     session_id,
     user_id,
     created_at DESC

@@ -50,7 +50,10 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
   const loadChatHistory = async () => {
     try {
+      setLoading(true);
       const sessionToLoad = selectedSessionId || currentSessionId;
+      
+      console.log('Loading chat history for session:', sessionToLoad);
 
       const { data, error } = await supabase
         .from('messages')
@@ -58,7 +61,12 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         .eq('session_id', sessionToLoad)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      console.log('Loaded messages:', data?.length || 0);
 
       if (data && data.length > 0) {
         setMessages(data.map(msg => ({
@@ -87,6 +95,8 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      console.log('Saving message to session:', currentSessionId, 'Role:', role);
+
       const { error } = await supabase
         .from('messages')
         .insert({
@@ -97,7 +107,12 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
           language: i18n.language
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Save error:', error);
+        throw error;
+      }
+      
+      console.log('Message saved successfully');
     } catch (error: any) {
       console.error('Error saving message:', error);
       toast({
