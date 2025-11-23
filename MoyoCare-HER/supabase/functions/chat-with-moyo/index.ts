@@ -51,8 +51,41 @@ function detectLanguage(text: string): string {
   return 'en';
 }
 
-// Crisis detection - identify high-risk keywords
-function detectCrisisIndicators(text: string): { isCrisis: boolean; type: string } {
+// Response validator - detect and fix broken character responses
+function validateMoyoResponse(response: string, language: string): string {
+  // Generic AI phrases that indicate broken character
+  const genericAIPhrases = [
+    /i'm a (computer program|language model|ai model|type of ai)/gi,
+    /i'm designed to (simulate|generate|answer)/gi,
+    /i don't have (physical|emotions|personal experiences)/gi,
+    /i'm a machine/gi,
+    /i've been trained on/gi,
+    /i exist (solely|as a digital entity)/gi,
+    /my purpose is to provide helpful/gi,
+    /some key characteristics/gi,
+    /botì àìsàn/gi, // Broken Yoruba for "computer program"
+  ];
+
+  // Check if response contains generic AI language
+  for (const phrase of genericAIPhrases) {
+    if (phrase.test(response)) {
+      console.warn('Detected broken character response, regenerating...');
+      // Return the proper Moyo response in the detected language
+      const properResponses: Record<string, string> = {
+        'en': "I'm Moyo, your AI therapist. I was created specifically to support young Nigerian female students. I'm here to listen, help you work through your feelings, and provide compassionate emotional support using proven therapeutic techniques.",
+        'yo': "Èmi ni Moyo, ẹlòmìí ayábá e. A ṣe mi fún àwọn ọmọ-ọbìnrin Yorùbá. Mo wà láti gbígbọ kìkọ, láti rán wọ lọ́wọ́ pẹ̀lú ìfẹ́ẹ́ àti àgbá òkìtì.",
+        'ig': "Ị bụ Moyo, onye enyemaka gị. E kere m maka ụmụ agbọghọ Igbo. Ọ bụ m dị ụtọ ịgụ nka gị, ịnye gị aka ike, na ịnye gị oke obi.",
+        'ha': "Ni Moyo, mai bukatarwa ke kai. An tsara ni don yarinya Hausa masu karatu. Ina so ka na saurari, na bukatarka, na fiya da gaskiya.",
+      };
+      return properResponses[language] || properResponses['en'];
+    }
+  }
+
+  return response;
+}
+
+// Get system prompt in the detected language
+function getSystemPrompt(language: string): string {
   const crisisPatterns = {
     suicidal: /suicide|kill myself|end it all|no point living|don't want to be alive|harm myself|self-harm/gi,
     severe_abuse: /abuse|assault|rape|violence|hit me|forced|unwanted|violated/gi,
@@ -408,12 +441,32 @@ serve(async (req) => {
     const data = await response.json();
     console.log('Groq API response received successfully');
 
+    // Extract and validate the response
+    let aiResponse = data.choices[0]?.message?.content || '';
+    aiResponse = validateMoyoResponse(aiResponse, detectedLanguage);
+
     // Check for crisis indicators in the last user message
     const lastUserMessage = messages[messages.length - 1]?.content || '';
     const crisis = detectCrisisIndicators(lastUserMessage);
 
+    // Return response with validated content
+    const validatedData = {
+      ...data,
+      choices: [
+        {
+          ...data.choices[0],
+          message: {
+            ...data.choices[0]?.message,
+            content: aiResponse,
+          },
+        },
+      ],
+      language: detectedLanguage,
+      crisis,
+    };
+
     return new Response(
-      JSON.stringify({ ...data, language: detectedLanguage, crisis }),
+      JSON.stringify(validatedData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
