@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Send, ArrowLeft } from 'lucide-react';
+import { Brain, Send, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CyclePhase } from '@/utils/contextAwareness';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +33,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [crisisAlert, setCrisisAlert] = useState<{ show: boolean; type: string }>({ show: false, type: '' });
   const { toast } = useToast();
 
   // Load chat history on mount
@@ -140,6 +141,16 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
       setMessages(prev => [...prev, assistantMessage]);
       await saveMessage('assistant', aiResponse);
+
+      // Check for crisis indicators from backend
+      if (data.crisis?.isCrisis) {
+        setCrisisAlert({ show: true, type: data.crisis.type });
+        toast({
+          title: '⚠️ We care about you',
+          description: 'If you\'re in immediate danger, please reach out to a counselor or crisis line.',
+          variant: 'destructive',
+        });
+      }
     } catch (error: any) {
       console.error('Error in chat:', error);
       toast({
@@ -189,6 +200,18 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        {crisisAlert.show && (
+          <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded">
+            <p className="text-red-800 font-semibold">⚠️ Your wellbeing matters</p>
+            <p className="text-red-700 text-sm mt-1">If you're in crisis, please reach out to a counselor or emergency service immediately.</p>
+            <button
+              onClick={() => setCrisisAlert({ show: false, type: '' })}
+              className="text-xs text-red-600 hover:text-red-800 mt-2 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-gray-500">Loading conversation...</p>
