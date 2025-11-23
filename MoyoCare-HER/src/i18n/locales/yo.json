@@ -1,0 +1,23 @@
+{
+    "chat_placeholder": "Tẹ ifiranṣẹ rẹ tabi tẹ bọtini mic láti sọ...",
+    "send_button": "Fi ranṣẹ",
+    "start_recording": "Bẹrẹ Sísọ",
+    "stop_recording": "Dadi Sísọ",
+    "play_audio": "Tun",
+    "language": "Ede",
+    "english": "English",
+    "yoruba": "Yorùbá",
+    "igbo": "Igbo",
+    "hausa": "Hausa",
+    "quick_chips": {
+        "stressed": "Okan mi ró",
+        "cramps": "Ẹkún ara mi ń pa mí",
+        "lonely": "Ìfẹ́ò gbá mi",
+        "exam": "Ìjìnlẹ̀ lọ̀la"
+    },
+    "recording": "Òwe ni n ṣẹ...",
+    "processing": "N ṣe afikun ohun...",
+    "error_recording": "Àṣìṣe ni sísọ",
+    "error_playback": "Àṣìṣe ni titun ohun",
+    "mic_not_supported": "Speech recognition kò ni atilẹyin ni browser yii"
+}

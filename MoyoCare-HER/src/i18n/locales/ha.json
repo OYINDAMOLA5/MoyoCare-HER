@@ -1,0 +1,23 @@
+{
+    "chat_placeholder": "Rubuta sakon ku ko kukkauhe bọtini mic don sunan...",
+    "send_button": "Aika",
+    "start_recording": "Fara Yin sauni",
+    "stop_recording": "Tsaya Yin sauni",
+    "play_audio": "Kunna",
+    "language": "Harshe",
+    "english": "English",
+    "yoruba": "Yorùbá",
+    "igbo": "Igbo",
+    "hausa": "Hausa",
+    "quick_chips": {
+        "stressed": "Ni damuwa",
+        "cramps": "Ciwo na kawo mani",
+        "lonely": "Ni kura",
+        "exam": "Gwajin jiya"
+    },
+    "recording": "Yin sauni...",
+    "processing": "Karanton sauni...",
+    "error_recording": "Kuskuren sauni",
+    "error_playback": "Kuskuren kunna sauni",
+    "mic_not_supported": "Sauni ba shi da goyan baya a wannan browser"
+}

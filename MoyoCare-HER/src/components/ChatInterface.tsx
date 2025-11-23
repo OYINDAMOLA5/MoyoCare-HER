@@ -1,15 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Send, ArrowLeft, Mic } from 'lucide-react';
+import { Brain, Send, ArrowLeft, Mic, Volume2, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CyclePhase } from '@/utils/contextAwareness';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
+import { SpeechToTextService, TextToSpeechService } from '@/utils/audioServices';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
   id?: string;
+  language?: string;
 }
 
 interface ChatInterfaceProps {
@@ -18,35 +28,30 @@ interface ChatInterfaceProps {
   cyclePhase: CyclePhase;
 }
 
-const quickChips = [
-  'I am stressed',
-  'Cramps are killing me',
-  'I feel lonely',
-  'Exam tomorrow'
-];
-
-const SYSTEM_PROMPT = `You are Moyo, a warm, compassionate, and professional AI Therapist for young Nigerian female students.
-
-YOUR GOAL:
-Provide Cognitive Behavioral Therapy (CBT) and emotional support directly in the chat. Do not refer the user to a doctor unless they are in immediate danger. Help them process their feelings NOW.
-
-YOUR PERSONA:
-- Tone: Like a wise, calm older sister or auntie. Warm, safe, non-judgmental.
-- Language: English mixed with light Nigerian Pidgin nuance (use "Sis", "We", "Small small", "Wahala").
-- Context Awareness: You understand Nigerian university stress (lecturers, strikes, family pressure).
-
-RULES:
-1. IF user mentions menstrual pain/cramps: Ask about their cycle phase and suggest specific physical comfort (heat, water) + emotional validation.
-2. IF user is anxious (exams): Use CBT "Reframing". Ask them to challenge the negative thought.
-3. IF user is suicidal: Show deep empathy, de-escalate, and gently urge them to stay safe, but DO NOT shut down the conversation. Stay with them.
-4. LENGTH: Keep responses short (2-3 sentences max). This is a chat, not an email.`;
-
 export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: ChatInterfaceProps) {
+  const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const { toast } = useToast();
+
+  const sttServiceRef = useRef<SpeechToTextService | null>(null);
+  const ttsServiceRef = useRef<TextToSpeechService | null>(null);
+  const playingMessageIdRef = useRef<string | null>(null);
+
+  // Initialize audio services
+  useEffect(() => {
+    sttServiceRef.current = new SpeechToTextService();
+    ttsServiceRef.current = new TextToSpeechService();
+
+    return () => {
+      sttServiceRef.current?.abort();
+      ttsServiceRef.current?.stop();
+    };
+  }, []);
 
   // Load chat history on mount
   useEffect(() => {
@@ -106,12 +111,71 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     }
   };
 
+  const handleStartRecording = () => {
+    if (!sttServiceRef.current?.isSupported()) {
+      toast({
+        title: 'Not supported',
+        description: t('mic_not_supported'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsRecording(true);
+    sttServiceRef.current?.start({
+      language: i18n.language,
+      onResult: (text) => setInput(text),
+      onError: (error) => {
+        setIsRecording(false);
+        toast({
+          title: t('error_recording'),
+          description: error,
+          variant: 'destructive',
+        });
+      },
+      onEnd: () => setIsRecording(false),
+    });
+  };
+
+  const handleStopRecording = () => {
+    sttServiceRef.current?.stop();
+    setIsRecording(false);
+  };
+
+  const playAudio = (text: string, messageId?: string) => {
+    if (!ttsServiceRef.current?.isSupported()) {
+      toast({
+        title: 'Not supported',
+        description: 'Text-to-speech not supported in this browser',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    playingMessageIdRef.current = messageId || null;
+    setIsPlayingAudio(true);
+
+    ttsServiceRef.current?.speak(text, {
+      language: i18n.language,
+      onEnd: () => setIsPlayingAudio(false),
+      onError: (error) => {
+        setIsPlayingAudio(false);
+        toast({
+          title: t('error_playback'),
+          description: error,
+          variant: 'destructive',
+        });
+      },
+    });
+  };
+
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim()) return;
 
     const userMessage: Message = {
       role: 'user',
-      content: messageText
+      content: messageText,
+      language: i18n.language,
     };
 
     // Optimistically update UI
@@ -129,14 +193,11 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         contextualMessage += ` [Context: User is currently in ${cyclePhase} phase of menstrual cycle]`;
       }
 
-      // Call the secure backend edge function
+      // Call the secure backend edge function with language
       const { data, error } = await supabase.functions.invoke('chat-with-moyo', {
         body: {
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            ...messages.map(m => ({ role: m.role, content: m.content })),
-            { role: 'user', content: contextualMessage }
-          ]
+          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          language: i18n.language,
         }
       });
 
@@ -147,160 +208,167 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
       const aiResponse = data.choices[0]?.message?.content || 'I hear you, sis. Tell me more.';
       const assistantMessage: Message = {
         role: 'assistant',
-        content: aiResponse
+        content: aiResponse,
+        language: data.language || i18n.language,
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-
-      // Save assistant message to database
       await saveMessage('assistant', aiResponse);
-    } catch (error) {
-      console.error('Chat Error:', error);
+
+      // Auto-play TTS for assistant response
+      if (ttsServiceRef.current?.isSupported()) {
+        playAudio(aiResponse, assistantMessage.id);
+      }
+    } catch (error: any) {
+      console.error('Error in chat:', error);
       toast({
-        title: 'Connection Error',
-        description: 'Moyo is having trouble connecting right now. Please try again.',
+        title: 'Error',
+        description: error.message || 'Something went wrong',
         variant: 'destructive',
       });
-
-      // Remove the user message if API call failed
-      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsThinking(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await handleSendMessage(input);
-  };
-
-  const handleChipClick = async (chipText: string) => {
-    setInput(chipText);
-    await handleSendMessage(chipText);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <Brain className="w-12 h-12 text-primary animate-pulse" />
-          <p className="text-lg text-muted-foreground">Loading your conversation...</p>
-        </div>
-      </div>
-    );
-  }
+  const quickChips = [
+    t('quick_chips.stressed'),
+    t('quick_chips.cramps'),
+    t('quick_chips.lonely'),
+    t('quick_chips.exam'),
+  ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-gradient-to-b from-pink-50 to-purple-50 flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
-        <div className="max-w-4xl mx-auto p-4 flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Chat with Moyo</h1>
-            <p className="text-xs text-muted-foreground">I'm here to listen, sis</p>
-          </div>
+      <div className="bg-white border-b border-pink-200 px-4 py-4 flex items-center justify-between">
+        <button
+          onClick={onBack}
+          title="Go back"
+          className="p-2 hover:bg-pink-100 rounded-lg transition"
+        >
+          <ArrowLeft className="w-5 h-5 text-pink-600" />
+        </button>
+        <div className="flex items-center gap-3">
+          <Brain className="w-6 h-6 text-pink-600" />
+          <h1 className="text-2xl font-bold text-pink-600">Chat with Moyo</h1>
         </div>
-      </header>
+        <Select value={i18n.language} onValueChange={(lang) => i18n.changeLanguage(lang)}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder={t('language')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="en">{t('english')}</SelectItem>
+            <SelectItem value="yo">{t('yoruba')}</SelectItem>
+            <SelectItem value="ig">{t('igbo')}</SelectItem>
+            <SelectItem value="ha">{t('hausa')}</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Chat Messages */}
-      <main className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl mx-auto w-full">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-12">
-            <Brain className="w-16 h-16 text-primary opacity-50" />
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-foreground">
-                Wetin dey worry you today?
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Talk to me, sis. I dey here to listen.
-              </p>
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500">Loading conversation...</p>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <Brain className="w-12 h-12 text-pink-300 mb-4" />
+            <p className="text-gray-500 mb-4">No messages yet. Let's start chatting!</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {quickChips.map(chip => (
+                <button
+                  key={chip}
+                  onClick={() => handleSendMessage(chip)}
+                  className="px-4 py-2 bg-pink-200 text-pink-800 rounded-full hover:bg-pink-300 transition text-sm"
+                >
+                  {chip}
+                </button>
+              ))}
             </div>
           </div>
-        )}
-
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        ) : (
+          messages.map((message, idx) => (
             <div
-              className={`max-w-[85%] rounded-3xl p-4 ${message.role === 'user'
-                ? 'bg-primary text-white'
-                : 'bg-card border border-border'
-                }`}
+              key={idx}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              <div
+                className={`max-w-xs px-4 py-3 rounded-lg ${message.role === 'user'
+                  ? 'bg-pink-500 text-white rounded-br-none'
+                  : 'bg-white text-gray-800 border border-pink-200 rounded-bl-none'
+                  }`}
+              >
+                <p className="break-words">{message.content}</p>
+                {message.role === 'assistant' && (
+                  <button
+                    onClick={() => playAudio(message.content, message.id)}
+                    disabled={isPlayingAudio}
+                    className="mt-2 p-1 hover:bg-pink-100 rounded transition text-sm flex items-center gap-1"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    {t('play_audio')}
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-
+          ))
+        )}
         {isThinking && (
           <div className="flex justify-start">
-            <div className="max-w-[85%] rounded-3xl p-4 bg-accent/10 border border-accent/30">
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <Brain className="w-4 h-4 animate-pulse" />
-                Moyo is thinking...
+            <div className="bg-white text-gray-800 border border-pink-200 rounded-lg rounded-bl-none px-4 py-3">
+              <div className="flex gap-2">
+                <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse opacity-75"></div>
+                <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse opacity-50"></div>
               </div>
             </div>
           </div>
         )}
-
-      </main>
+      </div>
 
       {/* Input Area */}
-      <footer className="sticky bottom-0 bg-card border-t border-border shadow-lg">
-        <div className="max-w-4xl mx-auto p-4 space-y-3">
-          {/* Quick Chips */}
-          {messages.length === 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {quickChips.map((chip, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleChipClick(chip)}
-                  disabled={isThinking}
-                  className="flex-shrink-0 rounded-full"
-                >
-                  {chip}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {/* Input Form */}
-          <form onSubmit={handleSubmit} className="flex items-end gap-2">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 min-h-[50px] max-h-[120px] resize-none rounded-3xl"
-              disabled={isThinking}
-              rows={1}
-            />
+      <div className="bg-white border-t border-pink-200 p-4 space-y-3">
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={t('chat_placeholder')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(input);
+              }
+            }}
+            className="flex-1 resize-none border-pink-300 focus:border-pink-500"
+            rows={2}
+          />
+          <div className="flex flex-col gap-2">
             <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="flex-shrink-0"
-              disabled={isThinking}
+              onClick={() => handleSendMessage(input)}
+              disabled={!input.trim() || isThinking}
+              className="bg-pink-600 hover:bg-pink-700 text-white flex items-center gap-2"
             >
-              <Mic className="w-5 h-5 text-muted-foreground" />
+              <Send className="w-4 h-4" />
+              {t('send_button')}
             </Button>
             <Button
-              type="submit"
-              size="icon"
-              disabled={isThinking || !input.trim()}
-              className="flex-shrink-0 bg-primary hover:bg-primary/90 rounded-full"
+              onClick={isRecording ? handleStopRecording : handleStartRecording}
+              variant={isRecording ? 'destructive' : 'outline'}
+              className="flex items-center gap-2"
             >
-              <Send className="w-5 h-5" />
+              <Mic className="w-4 h-4" />
+              {isRecording ? t('stop_recording') : t('start_recording')}
             </Button>
-          </form>
+          </div>
         </div>
-      </footer>
+        {isRecording && (
+          <div className="text-sm text-orange-600 font-medium">
+            🎙️ {t('recording')}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

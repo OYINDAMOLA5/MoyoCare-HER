@@ -1,0 +1,23 @@
+{
+    "chat_placeholder": "Type your message or click the mic button to speak...",
+    "send_button": "Send",
+    "start_recording": "Start Recording",
+    "stop_recording": "Stop Recording",
+    "play_audio": "Play",
+    "language": "Language",
+    "english": "English",
+    "yoruba": "Yorùbá",
+    "igbo": "Igbo",
+    "hausa": "Hausa",
+    "quick_chips": {
+        "stressed": "I am stressed",
+        "cramps": "Cramps are killing me",
+        "lonely": "I feel lonely",
+        "exam": "Exam tomorrow"
+    },
+    "recording": "Recording...",
+    "processing": "Processing audio...",
+    "error_recording": "Error recording audio",
+    "error_playback": "Error playing audio",
+    "mic_not_supported": "Speech recognition not supported in this browser"
+}

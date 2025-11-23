@@ -1,0 +1,23 @@
+{
+    "chat_placeholder": "Dezie ụzọ gị ma ọ bụ pịa bọtịnụ mik ka ị nụ...",
+    "send_button": "Ziga",
+    "start_recording": "Malite Igwe Mma",
+    "stop_recording": "Kwụsị Igwe Mma",
+    "play_audio": "Ruo",
+    "language": "Asụsụ",
+    "english": "English",
+    "yoruba": "Yorùbá",
+    "igbo": "Igbo",
+    "hausa": "Hausa",
+    "quick_chips": {
+        "stressed": "Obi m adịghị mma",
+        "cramps": "Oke ụfọdu na-eme m ihe ike",
+        "lonely": "Obi m dị ụtọ",
+        "exam": "Aghụghọ buụ echi"
+    },
+    "recording": "Ịtu ụka...",
+    "processing": "Ịkwadọ tupu...",
+    "error_recording": "Mmejọ n'ọgwụ tupu",
+    "error_playback": "Mmejọ n'ịruo tupu",
+    "mic_not_supported": "Ịtu ụka enweghị ọnụ na brọwụzọ a"
+}
