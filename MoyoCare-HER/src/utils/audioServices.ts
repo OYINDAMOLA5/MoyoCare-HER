@@ -109,80 +109,119 @@ export class SpeechToTextService {
 const SpeechSynthesis = typeof window !== 'undefined' ? window.speechSynthesis : null;
 
 export interface TTSOptions {
-    language?: string;
-    rate?: number;
-    pitch?: number;
-    volume?: number;
-    onEnd?: () => void;
-    onError?: (error: string) => void;
+  language?: string;
+  rate?: number;
+  pitch?: number;
+  volume?: number;
+  voiceIndex?: number;
+  onEnd?: () => void;
+  onError?: (error: string) => void;
 }
 
 export class TextToSpeechService {
-    private isPlaying = false;
+  private isPlaying = false;
+  private availableVoices: SpeechSynthesisVoice[] = [];
 
-    speak(text: string, options: TTSOptions = {}) {
-        if (!SpeechSynthesis) {
-            options.onError?.('Text-to-Speech not supported');
-            return;
-        }
+  constructor() {
+    if (SpeechSynthesis) {
+      // Load voices on initialization
+      const loadVoices = () => {
+        this.availableVoices = SpeechSynthesis!.getVoices();
+      };
+      
+      SpeechSynthesis.onvoiceschanged = loadVoices;
+      loadVoices();
+    }
+  }
 
-        // Stop any ongoing speech
-        SpeechSynthesis.cancel();
+  getAvailableVoices(): SpeechSynthesisVoice[] {
+    return this.availableVoices;
+  }
 
-        const utterance = new SpeechSynthesisUtterance(text);
+  getVoicesForLanguage(language: string): SpeechSynthesisVoice[] {
+    const langMap: Record<string, string> = {
+      en: 'en-US',
+      yo: 'yo-NG',
+      ig: 'ig-NG',
+      ha: 'ha-NG',
+    };
+    
+    const targetLang = langMap[language] || 'en-US';
+    return this.availableVoices.filter(voice => voice.lang.includes(targetLang) || voice.lang.includes(language));
+  }
 
-        if (options.language) {
-            const langMap: Record<string, string> = {
-                en: 'en-US',
-                yo: 'yo-NG',
-                ig: 'ig-NG',
-                ha: 'ha-NG',
-            };
-            utterance.lang = langMap[options.language] || 'en-US';
-        }
-
-        utterance.rate = options.rate || 1;
-        utterance.pitch = options.pitch || 1;
-        utterance.volume = options.volume || 1;
-
-        utterance.onend = () => {
-            this.isPlaying = false;
-            options.onEnd?.();
-        };
-
-        utterance.onerror = (event: any) => {
-            this.isPlaying = false;
-            options.onError?.(event.error);
-        };
-
-        this.isPlaying = true;
-        SpeechSynthesis.speak(utterance);
+  speak(text: string, options: TTSOptions = {}) {
+    if (!SpeechSynthesis) {
+      options.onError?.('Text-to-Speech not supported');
+      return;
     }
 
-    stop() {
-        if (SpeechSynthesis) {
-            SpeechSynthesis.cancel();
-            this.isPlaying = false;
-        }
+    // Stop any ongoing speech
+    SpeechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+
+    const langMap: Record<string, string> = {
+      en: 'en-US',
+      yo: 'yo-NG',
+      ig: 'ig-NG',
+      ha: 'ha-NG',
+    };
+    utterance.lang = langMap[options.language || 'en'] || 'en-US';
+
+    // Try to find a suitable voice for the language
+    const voicesForLang = this.getVoicesForLanguage(options.language || 'en');
+    if (voicesForLang.length > 0) {
+      const voiceIndex = options.voiceIndex || 0;
+      utterance.voice = voicesForLang[Math.min(voiceIndex, voicesForLang.length - 1)];
     }
 
-    pause() {
-        if (SpeechSynthesis && this.isPlaying) {
-            SpeechSynthesis.pause();
-        }
-    }
+    // Slower rate for better pronunciation of African languages
+    utterance.rate = options.language === 'yo' || options.language === 'ig' || options.language === 'ha' 
+      ? (options.rate || 0.8)  // Slower for African languages
+      : (options.rate || 1);
+    
+    utterance.pitch = options.pitch || 1;
+    utterance.volume = options.volume || 1;
 
-    resume() {
-        if (SpeechSynthesis && this.isPlaying) {
-            SpeechSynthesis.resume();
-        }
-    }
+    utterance.onend = () => {
+      this.isPlaying = false;
+      options.onEnd?.();
+    };
 
-    isSupported(): boolean {
-        return !!SpeechSynthesis;
-    }
+    utterance.onerror = (event: any) => {
+      this.isPlaying = false;
+      options.onError?.(event.error);
+    };
 
-    isPlayingNow(): boolean {
-        return this.isPlaying;
+    this.isPlaying = true;
+    SpeechSynthesis.speak(utterance);
+  }
+
+  stop() {
+    if (SpeechSynthesis) {
+      SpeechSynthesis.cancel();
+      this.isPlaying = false;
     }
+  }
+
+  pause() {
+    if (SpeechSynthesis && this.isPlaying) {
+      SpeechSynthesis.pause();
+    }
+  }
+
+  resume() {
+    if (SpeechSynthesis && this.isPlaying) {
+      SpeechSynthesis.resume();
+    }
+  }
+
+  isSupported(): boolean {
+    return !!SpeechSynthesis;
+  }
+
+  isPlayingNow(): boolean {
+    return this.isPlaying;
+  }
 }

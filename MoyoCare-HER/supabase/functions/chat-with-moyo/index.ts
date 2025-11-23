@@ -6,16 +6,49 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Detect language from text (simple heuristic)
+// Detect language from text (improved heuristic)
 function detectLanguage(text: string): string {
-  const yorubaChars = /[àáâèéêìíîòóôùúûãõ]/gi;
-  const igboChars = /[àáâèéêìíîòóôùúûü]/gi;
-  const hausaChars = /[àáâèéêìíîòóôùúûƴ]/gi;
+  const lowerText = text.toLowerCase();
+  
+  // Yoruba keywords and patterns
+  const yorubaPatterns = [
+    /\b(ṣ|ọ|ẹ|gini|kí|wà|jẹ|mo|o|e|a|wa)\b/gi, // Common Yoruba words/letters
+    /[àáâèéêìíîòóôùúûãõ]/gi, // Yoruba diacritics
+  ];
+  
+  // Igbo keywords and patterns
+  const igboPatterns = [
+    /\b(ị|ụ|ọ|ị|kedu|ị|ọ|chọ|ị)\b/gi, // Common Igbo words
+    /[àáèéìíòóùú]/gi, // Igbo diacritics
+  ];
+  
+  // Hausa keywords and patterns
+  const hausaPatterns = [
+    /\b(ɓ|ɗ|ƴ|sannu|na|shi|kida)\b/gi, // Common Hausa words
+    /[àáèéìíòóùúƴ]/gi, // Hausa diacritics
+  ];
 
-  if (yorubaChars.test(text)) return 'yoruba';
-  if (igboChars.test(text)) return 'igbo';
-  if (hausaChars.test(text)) return 'hausa';
-  return 'english';
+  let yorubaScore = 0, igboScore = 0, hausaScore = 0;
+
+  yorubaPatterns.forEach(pattern => {
+    const matches = lowerText.match(pattern);
+    yorubaScore += matches ? matches.length : 0;
+  });
+
+  igboPatterns.forEach(pattern => {
+    const matches = lowerText.match(pattern);
+    igboScore += matches ? matches.length : 0;
+  });
+
+  hausaPatterns.forEach(pattern => {
+    const matches = lowerText.match(pattern);
+    hausaScore += matches ? matches.length : 0;
+  });
+
+  if (yorubaScore > igboScore && yorubaScore > hausaScore && yorubaScore > 0) return 'yo';
+  if (igboScore > hausaScore && igboScore > 0) return 'ig';
+  if (hausaScore > 0) return 'ha';
+  return 'en';
 }
 
 // Get system prompt in the detected language
