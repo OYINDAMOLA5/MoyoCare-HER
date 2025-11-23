@@ -1,13 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Send, ArrowLeft, Mic, Volume2, RotateCcw } from 'lucide-react';
+import { Brain, Send, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { CyclePhase } from '@/utils/contextAwareness';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
-import { SpeechToTextService, TextToSpeechService } from '@/utils/audioServices';
-import { YarnGPTTextToSpeechService } from '@/utils/yarnGptTTS';
 import {
   Select,
   SelectContent,
@@ -35,31 +33,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const { toast } = useToast();
-
-  const sttServiceRef = useRef<SpeechToTextService | null>(null);
-  const ttsServiceRef = useRef<TextToSpeechService | null>(null);
-  const yarnGptServiceRef = useRef<YarnGPTTextToSpeechService | null>(null);
-  const playingMessageIdRef = useRef<string | null>(null);
-
-  // Initialize audio services
-  useEffect(() => {
-    sttServiceRef.current = new SpeechToTextService();
-    ttsServiceRef.current = new TextToSpeechService();
-
-    // Initialize YarnGPT if API key is available
-    const yarnGptApiKey = import.meta.env.VITE_YARNGPT_API_KEY;
-    if (yarnGptApiKey) {
-      yarnGptServiceRef.current = new YarnGPTTextToSpeechService(yarnGptApiKey);
-    }
-
-    return () => {
-      sttServiceRef.current?.abort();
-      ttsServiceRef.current?.stop();
-    };
-  }, []);
 
   // Load chat history on mount
   useEffect(() => {
@@ -119,85 +93,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     }
   };
 
-  const handleStartRecording = () => {
-    if (!sttServiceRef.current?.isSupported()) {
-      toast({
-        title: 'Not supported',
-        description: t('mic_not_supported'),
-        variant: 'destructive',
-      });
-      return;
-    }
 
-    setIsRecording(true);
-    sttServiceRef.current?.start({
-      language: i18n.language,
-      onResult: (text) => setInput(text),
-      onError: (error) => {
-        setIsRecording(false);
-        toast({
-          title: t('error_recording'),
-          description: error,
-          variant: 'destructive',
-        });
-      },
-      onEnd: () => setIsRecording(false),
-    });
-  };
-
-  const handleStopRecording = () => {
-    sttServiceRef.current?.stop();
-    setIsRecording(false);
-  };
-
-  const playAudio = async (text: string, messageId?: string) => {
-    playingMessageIdRef.current = messageId || null;
-    setIsPlayingAudio(true);
-
-    try {
-      const isAfricanLanguage = ['yo', 'ig', 'ha'].includes(i18n.language);
-      const useYarnGpt = isAfricanLanguage && yarnGptServiceRef.current?.isSupported();
-
-      if (useYarnGpt) {
-        // Use YarnGPT for African languages (better quality)
-        await yarnGptServiceRef.current!.speak(text, {
-          apiKey: import.meta.env.VITE_YARNGPT_API_KEY,
-          language: i18n.language as 'en' | 'yo' | 'ig' | 'ha',
-        });
-      } else {
-        // Fallback to Web Speech API
-        if (!ttsServiceRef.current?.isSupported()) {
-          toast({
-            title: 'Not supported',
-            description: 'Text-to-speech not supported in this browser',
-            variant: 'destructive',
-          });
-          setIsPlayingAudio(false);
-          return;
-        }
-
-        ttsServiceRef.current?.speak(text, {
-          language: i18n.language,
-          onEnd: () => setIsPlayingAudio(false),
-          onError: (error) => {
-            setIsPlayingAudio(false);
-            toast({
-              title: t('error_playback'),
-              description: error,
-              variant: 'destructive',
-            });
-          },
-        });
-      }
-    } catch (error: any) {
-      setIsPlayingAudio(false);
-      toast({
-        title: 'Audio Error',
-        description: error.message || 'Failed to play audio',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleSendMessage = async (messageText: string) => {
     if (!messageText.trim()) return;
@@ -244,21 +140,6 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
       setMessages(prev => [...prev, assistantMessage]);
       await saveMessage('assistant', aiResponse);
-
-      // Auto-play TTS for assistant response using YarnGPT if available
-      if (yarnGptServiceRef.current?.isSupported() && ['yo', 'ig', 'ha'].includes(i18n.language)) {
-        try {
-          await playAudio(aiResponse, assistantMessage.id);
-        } catch (error) {
-          console.error('Auto-play audio failed:', error);
-          // Fallback to web speech
-          if (ttsServiceRef.current?.isSupported()) {
-            playAudio(aiResponse, assistantMessage.id);
-          }
-        }
-      } else if (ttsServiceRef.current?.isSupported()) {
-        playAudio(aiResponse, assistantMessage.id);
-      }
     } catch (error: any) {
       console.error('Error in chat:', error);
       toast({
@@ -341,16 +222,6 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
                   }`}
               >
                 <p className="break-words">{message.content}</p>
-                {message.role === 'assistant' && (
-                  <button
-                    onClick={() => playAudio(message.content, message.id)}
-                    disabled={isPlayingAudio}
-                    className="mt-2 p-1 hover:bg-pink-100 rounded transition text-sm flex items-center gap-1"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    {t('play_audio')}
-                  </button>
-                )}
               </div>
             </div>
           ))
@@ -384,30 +255,15 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
             className="flex-1 resize-none border-pink-300 focus:border-pink-500"
             rows={2}
           />
-          <div className="flex flex-col gap-2">
-            <Button
-              onClick={() => handleSendMessage(input)}
-              disabled={!input.trim() || isThinking}
-              className="bg-pink-600 hover:bg-pink-700 text-white flex items-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              {t('send_button')}
-            </Button>
-            <Button
-              onClick={isRecording ? handleStopRecording : handleStartRecording}
-              variant={isRecording ? 'destructive' : 'outline'}
-              className="flex items-center gap-2"
-            >
-              <Mic className="w-4 h-4" />
-              {isRecording ? t('stop_recording') : t('start_recording')}
-            </Button>
-          </div>
+          <Button
+            onClick={() => handleSendMessage(input)}
+            disabled={!input.trim() || isThinking}
+            className="bg-pink-600 hover:bg-pink-700 text-white flex items-center gap-2 h-fit"
+          >
+            <Send className="w-4 h-4" />
+            {t('send_button')}
+          </Button>
         </div>
-        {isRecording && (
-          <div className="text-sm text-orange-600 font-medium">
-            🎙️ {t('recording')}
-          </div>
-        )}
       </div>
     </div>
   );
