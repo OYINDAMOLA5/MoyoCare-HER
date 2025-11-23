@@ -7,6 +7,7 @@ import { CyclePhase } from '@/utils/contextAwareness';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import { SpeechToTextService, TextToSpeechService } from '@/utils/audioServices';
+import { YarnGPTTextToSpeechService } from '@/utils/yarnGptTTS';
 import {
   Select,
   SelectContent,
@@ -40,12 +41,19 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
   const sttServiceRef = useRef<SpeechToTextService | null>(null);
   const ttsServiceRef = useRef<TextToSpeechService | null>(null);
+  const yarnGptServiceRef = useRef<YarnGPTTextToSpeechService | null>(null);
   const playingMessageIdRef = useRef<string | null>(null);
 
   // Initialize audio services
   useEffect(() => {
     sttServiceRef.current = new SpeechToTextService();
     ttsServiceRef.current = new TextToSpeechService();
+
+    // Initialize YarnGPT if API key is available
+    const yarnGptApiKey = import.meta.env.VITE_YARNGPT_API_KEY;
+    if (yarnGptApiKey) {
+      yarnGptServiceRef.current = new YarnGPTTextToSpeechService(yarnGptApiKey);
+    }
 
     return () => {
       sttServiceRef.current?.abort();
@@ -142,31 +150,53 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     setIsRecording(false);
   };
 
-  const playAudio = (text: string, messageId?: string) => {
-    if (!ttsServiceRef.current?.isSupported()) {
-      toast({
-        title: 'Not supported',
-        description: 'Text-to-speech not supported in this browser',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const playAudio = async (text: string, messageId?: string) => {
     playingMessageIdRef.current = messageId || null;
     setIsPlayingAudio(true);
 
-    ttsServiceRef.current?.speak(text, {
-      language: i18n.language,
-      onEnd: () => setIsPlayingAudio(false),
-      onError: (error) => {
-        setIsPlayingAudio(false);
-        toast({
-          title: t('error_playback'),
-          description: error,
-          variant: 'destructive',
+    try {
+      const isAfricanLanguage = ['yo', 'ig', 'ha'].includes(i18n.language);
+      const useYarnGpt = isAfricanLanguage && yarnGptServiceRef.current?.isSupported();
+
+      if (useYarnGpt) {
+        // Use YarnGPT for African languages (better quality)
+        await yarnGptServiceRef.current!.speak(text, {
+          apiKey: import.meta.env.VITE_YARNGPT_API_KEY,
+          language: i18n.language as 'en' | 'yo' | 'ig' | 'ha',
         });
-      },
-    });
+      } else {
+        // Fallback to Web Speech API
+        if (!ttsServiceRef.current?.isSupported()) {
+          toast({
+            title: 'Not supported',
+            description: 'Text-to-speech not supported in this browser',
+            variant: 'destructive',
+          });
+          setIsPlayingAudio(false);
+          return;
+        }
+
+        ttsServiceRef.current?.speak(text, {
+          language: i18n.language,
+          onEnd: () => setIsPlayingAudio(false),
+          onError: (error) => {
+            setIsPlayingAudio(false);
+            toast({
+              title: t('error_playback'),
+              description: error,
+              variant: 'destructive',
+            });
+          },
+        });
+      }
+    } catch (error: any) {
+      setIsPlayingAudio(false);
+      toast({
+        title: 'Audio Error',
+        description: error.message || 'Failed to play audio',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleSendMessage = async (messageText: string) => {
@@ -215,8 +245,18 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
       setMessages(prev => [...prev, assistantMessage]);
       await saveMessage('assistant', aiResponse);
 
-      // Auto-play TTS for assistant response
-      if (ttsServiceRef.current?.isSupported()) {
+      // Auto-play TTS for assistant response using YarnGPT if available
+      if (yarnGptServiceRef.current?.isSupported() && ['yo', 'ig', 'ha'].includes(i18n.language)) {
+        try {
+          await playAudio(aiResponse, assistantMessage.id);
+        } catch (error) {
+          console.error('Auto-play audio failed:', error);
+          // Fallback to web speech
+          if (ttsServiceRef.current?.isSupported()) {
+            playAudio(aiResponse, assistantMessage.id);
+          }
+        }
+      } else if (ttsServiceRef.current?.isSupported()) {
         playAudio(aiResponse, assistantMessage.id);
       }
     } catch (error: any) {
