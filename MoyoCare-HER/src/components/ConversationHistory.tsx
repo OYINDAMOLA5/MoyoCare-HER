@@ -40,6 +40,7 @@ export default function ConversationHistory({
                 .from('messages')
                 .select('session_id, content, role, created_at')
                 .eq('user_id', user.id)
+                .not('session_id', 'is', null)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -49,13 +50,15 @@ export default function ConversationHistory({
                 const sessionMap = new Map<string, any>();
 
                 data.forEach((msg: any) => {
+                    // Skip messages without session_id
+                    if (!msg.session_id) return;
+
                     if (!sessionMap.has(msg.session_id)) {
                         sessionMap.set(msg.session_id, {
                             id: msg.session_id,
                             created_at: msg.created_at,
                             message_count: 0,
                             preview: '',
-                            firstUserMessage: ''
                         });
                     }
 
@@ -63,8 +66,7 @@ export default function ConversationHistory({
                     session.message_count++;
 
                     // Get first user message as preview
-                    if (msg.role === 'user' && !session.firstUserMessage) {
-                        session.firstUserMessage = msg.content;
+                    if (msg.role === 'user' && !session.preview) {
                         session.preview = msg.content;
                     }
                 });
