@@ -5,9 +5,8 @@
 export interface YarnGPTOptions {
     apiKey: string;
     language?: 'en' | 'yo' | 'ig' | 'ha'; // English, Yoruba, Igbo, Hausa
-    voiceId?: string; // Specific voice ID (male/female variants)
+    voice?: string; // Specific voice name (e.g., "Idera", "Kofi", etc.)
     speed?: number; // 0.5 to 2.0 (default: 1.0)
-    pitch?: number; // -20.0 to 20.0 (default: 0)
 }
 
 export interface YarnGPTVoice {
@@ -20,7 +19,7 @@ export interface YarnGPTVoice {
 
 export class YarnGPTTextToSpeechService {
     private apiKey: string;
-    private baseUrl = 'https://api.yarngpt.ai/v1';
+    private baseUrl = 'https://yarngpt.ai/api/v1/tts';
     private availableVoices: YarnGPTVoice[] = [];
 
     constructor(apiKey: string) {
@@ -29,24 +28,23 @@ export class YarnGPTTextToSpeechService {
     }
 
     private initializeVoices() {
-        // Common YarnGPT voices - these are typical available voices
-        // You may need to adjust based on actual API response
+        // YarnGPT available voices
         this.availableVoices = [
             // English
-            { id: 'en-male-1', name: 'Kofi (Male)', language: 'en', gender: 'male' },
-            { id: 'en-female-1', name: 'Ada (Female)', language: 'en', gender: 'female' },
+            { id: 'kofi', name: 'Kofi', language: 'en', gender: 'male' },
+            { id: 'ada', name: 'Ada', language: 'en', gender: 'female' },
 
             // Yoruba
-            { id: 'yo-male-1', name: 'Ayo (Male)', language: 'yo', gender: 'male', accent: 'Nigerian' },
-            { id: 'yo-female-1', name: 'Fola (Female)', language: 'yo', gender: 'female', accent: 'Nigerian' },
+            { id: 'idera', name: 'Idera', language: 'yo', gender: 'female', accent: 'Nigerian' },
+            { id: 'ayo', name: 'Ayo', language: 'yo', gender: 'male', accent: 'Nigerian' },
 
             // Igbo
-            { id: 'ig-male-1', name: 'Chisom (Male)', language: 'ig', gender: 'male', accent: 'Nigerian' },
-            { id: 'ig-female-1', name: 'Amara (Female)', language: 'ig', gender: 'female', accent: 'Nigerian' },
+            { id: 'chisom', name: 'Chisom', language: 'ig', gender: 'male', accent: 'Nigerian' },
+            { id: 'amara', name: 'Amara', language: 'ig', gender: 'female', accent: 'Nigerian' },
 
             // Hausa
-            { id: 'ha-male-1', name: 'Musa (Male)', language: 'ha', gender: 'male', accent: 'Nigerian' },
-            { id: 'ha-female-1', name: 'Zainab (Female)', language: 'ha', gender: 'female', accent: 'Nigerian' },
+            { id: 'musa', name: 'Musa', language: 'ha', gender: 'male', accent: 'Nigerian' },
+            { id: 'zainab', name: 'Zainab', language: 'ha', gender: 'female', accent: 'Nigerian' },
         ];
     }
 
@@ -78,51 +76,49 @@ export class YarnGPTTextToSpeechService {
             const voicesForLang = this.getVoicesForLanguage(language);
 
             // Use provided voice or default to first female voice for that language
-            let voiceId = options.voiceId;
-            if (!voiceId && voicesForLang.length > 0) {
+            let voiceName = options.voice;
+            if (!voiceName && voicesForLang.length > 0) {
                 const femaleVoice = voicesForLang.find(v => v.gender === 'female');
-                voiceId = femaleVoice ? femaleVoice.id : voicesForLang[0].id;
+                voiceName = femaleVoice ? femaleVoice.name : voicesForLang[0].name;
             }
 
-            const response = await fetch(`${this.baseUrl}/tts/synthesize`, {
+            const payload = {
+                text,
+                voice: voiceName || 'Idera',
+            };
+
+            const response = await fetch(this.baseUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.apiKey}`,
-                    'X-API-Key': this.apiKey,
                 },
-                body: JSON.stringify({
-                    text,
-                    language,
-                    voice_id: voiceId,
-                    speed: options.speed || 1.0,
-                    pitch: options.pitch || 0,
-                    format: 'mp3',
-                    output: 'url', // Get URL instead of base64 for better performance
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
-                const error = await response.json();
+                const error = await response.json().catch(() => ({}));
                 throw new Error(`YarnGPT API error: ${error.message || response.statusText}`);
             }
 
-            const data = await response.json();
-            const audioUrl = data.audio_url || data.url;
-
-            if (!audioUrl) {
-                throw new Error('No audio URL returned from YarnGPT');
-            }
+            // Get audio blob from response
+            const audioBlob = await response.blob();
+            const audioUrl = URL.createObjectURL(audioBlob);
 
             // Play the audio
             const audio = new Audio(audioUrl);
             audio.volume = 1;
-            await audio.play();
 
-            // Wait for audio to finish
             return new Promise((resolve, reject) => {
-                audio.onended = () => resolve();
-                audio.onerror = () => reject(new Error('Audio playback error'));
+                audio.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    resolve();
+                };
+                audio.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    reject(new Error('Audio playback error'));
+                };
+                audio.play().catch(reject);
             });
         } catch (error) {
             console.error('YarnGPT TTS error:', error);
@@ -142,32 +138,28 @@ export class YarnGPTTextToSpeechService {
             const language = langMap[options.language || 'en'] || 'en';
             const voicesForLang = this.getVoicesForLanguage(language);
 
-            let voiceId = options.voiceId;
-            if (!voiceId && voicesForLang.length > 0) {
+            let voiceName = options.voice;
+            if (!voiceName && voicesForLang.length > 0) {
                 const femaleVoice = voicesForLang.find(v => v.gender === 'female');
-                voiceId = femaleVoice ? femaleVoice.id : voicesForLang[0].id;
+                voiceName = femaleVoice ? femaleVoice.name : voicesForLang[0].name;
             }
 
-            const response = await fetch(`${this.baseUrl}/tts/synthesize`, {
+            const payload = {
+                text,
+                voice: voiceName || 'Idera',
+            };
+
+            const response = await fetch(this.baseUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${this.apiKey}`,
-                    'X-API-Key': this.apiKey,
                 },
-                body: JSON.stringify({
-                    text,
-                    language,
-                    voice_id: voiceId,
-                    speed: options.speed || 1.0,
-                    pitch: options.pitch || 0,
-                    format: 'mp3',
-                    output: 'blob',
-                }),
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
-                const error = await response.json();
+                const error = await response.json().catch(() => ({}));
                 throw new Error(`YarnGPT API error: ${error.message || response.statusText}`);
             }
 
