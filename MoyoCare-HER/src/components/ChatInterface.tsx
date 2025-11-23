@@ -114,16 +114,16 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     await saveMessage('user', messageText);
 
     try {
-      // Add context about cycle phase to the user message if needed
-      let contextualMessage = messageText;
-      if (isPeriodMode) {
-        contextualMessage += ` [Context: User is currently in ${cyclePhase} phase of menstrual cycle]`;
-      }
+      // Build complete message history including the current user message
+      const completeMessages = [
+        ...messages,
+        { role: 'user' as const, content: messageText }
+      ].map(m => ({ role: m.role, content: m.content }));
 
-      // Call the secure backend edge function with language
+      // Call the secure backend edge function with language and full history
       const { data, error } = await supabase.functions.invoke('chat-with-moyo', {
         body: {
-          messages: messages.map(m => ({ role: m.role, content: m.content })),
+          messages: completeMessages,
           language: i18n.language,
         }
       });
