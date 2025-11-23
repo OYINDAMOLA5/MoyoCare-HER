@@ -37,20 +37,26 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
   const [crisisAlert, setCrisisAlert] = useState<{ show: boolean; type: string }>({ show: false, type: '' });
   const [showHistory, setShowHistory] = useState(true);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
+    // Generate a new session ID on component mount
+    return crypto.randomUUID();
+  });
   const { toast } = useToast();
 
   // Load chat history on mount
   useEffect(() => {
     loadChatHistory();
-  }, [selectedSessionId]);
+  }, [selectedSessionId, currentSessionId]);
 
   const loadChatHistory = async () => {
     try {
+      const sessionToLoad = selectedSessionId || currentSessionId;
+
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .eq('session_id', sessionToLoad)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
 
@@ -58,8 +64,11 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         setMessages(data.map(msg => ({
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
-          id: msg.id
+          id: msg.id,
+          language: msg.language
         })));
+      } else {
+        setMessages([]);
       }
     } catch (error: any) {
       console.error('Error loading chat history:', error);
@@ -82,8 +91,10 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         .from('messages')
         .insert({
           user_id: user.id,
+          session_id: currentSessionId,
           role,
-          content
+          content,
+          language: i18n.language
         });
 
       if (error) throw error;
@@ -206,16 +217,22 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         {/* Sidebar History */}
         <ConversationHistory
           onSelectSession={(sessionId) => {
-            setSelectedSessionId(sessionId);
             if (sessionId === null) {
+              // New chat - create new session
+              setCurrentSessionId(crypto.randomUUID());
               setMessages([]);
+              setSelectedSessionId(null);
+            } else {
+              // Load existing session
+              setSelectedSessionId(sessionId);
             }
           }}
           onNewChat={() => {
+            setCurrentSessionId(crypto.randomUUID());
             setMessages([]);
             setSelectedSessionId(null);
           }}
-          currentSessionId={selectedSessionId}
+          currentSessionId={selectedSessionId || currentSessionId}
         />
 
         {/* Main Chat Area */}

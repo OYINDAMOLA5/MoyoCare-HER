@@ -35,53 +35,46 @@ export default function ConversationHistory({
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // Get distinct conversation sessions and their first message
+            // Get all distinct sessions for this user
             const { data, error } = await supabase
                 .from('messages')
-                .select('*')
+                .select('session_id, content, role, created_at')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
             if (data && data.length > 0) {
-                // Group messages into sessions (could use a session_id if you add one to schema)
-                // For now, we'll create virtual sessions based on time gaps
-                const groupedSessions: ConversationSession[] = [];
-                let currentGroup: any[] = [];
-                let lastTimestamp: Date | null = null;
+                // Group messages by session_id
+                const sessionMap = new Map<string, any>();
 
-                data.forEach((msg) => {
-                    const msgTime = new Date(msg.created_at);
-
-                    // If gap > 30 minutes, start new session
-                    if (lastTimestamp && (msgTime.getTime() - lastTimestamp.getTime()) > 30 * 60 * 1000) {
-                        if (currentGroup.length > 0) {
-                            groupedSessions.push({
-                                id: currentGroup[0].id,
-                                created_at: currentGroup[0].created_at,
-                                message_count: currentGroup.length,
-                                preview: currentGroup.find((m: any) => m.role === 'user')?.content || 'Conversation',
-                            });
-                        }
-                        currentGroup = [];
+                data.forEach((msg: any) => {
+                    if (!sessionMap.has(msg.session_id)) {
+                        sessionMap.set(msg.session_id, {
+                            id: msg.session_id,
+                            created_at: msg.created_at,
+                            message_count: 0,
+                            preview: '',
+                            firstUserMessage: ''
+                        });
                     }
 
-                    currentGroup.push(msg);
-                    lastTimestamp = msgTime;
+                    const session = sessionMap.get(msg.session_id);
+                    session.message_count++;
+
+                    // Get first user message as preview
+                    if (msg.role === 'user' && !session.firstUserMessage) {
+                        session.firstUserMessage = msg.content;
+                        session.preview = msg.content;
+                    }
                 });
 
-                // Add last group
-                if (currentGroup.length > 0) {
-                    groupedSessions.push({
-                        id: currentGroup[0].id,
-                        created_at: currentGroup[0].created_at,
-                        message_count: currentGroup.length,
-                        preview: currentGroup.find((m: any) => m.role === 'user')?.content || 'Conversation',
-                    });
-                }
+                // Convert to array and sort by most recent first
+                const sessionsList = Array.from(sessionMap.values()).sort((a, b) =>
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                );
 
-                setSessions(groupedSessions);
+                setSessions(sessionsList);
             }
         } catch (error: any) {
             console.error('Error loading sessions:', error);
@@ -101,13 +94,12 @@ export default function ConversationHistory({
             if (!user) return;
 
             // Delete all messages in this session
-            const { error } = await supabase
+            const response = await supabase
                 .from('messages')
                 .delete()
-                .eq('user_id', user.id)
-                .eq('id', sessionId); // This would need to be updated if using session_id
+                .match({ session_id: sessionId, user_id: user.id });
 
-            if (error) throw error;
+            if (response.error) throw response.error;
 
             setSessions(sessions.filter(s => s.id !== sessionId));
             if (currentSessionId === sessionId) {
@@ -169,8 +161,8 @@ export default function ConversationHistory({
                             <div
                                 key={session.id}
                                 className={`p-3 rounded-lg cursor-pointer group transition ${currentSessionId === session.id
-                                        ? 'bg-pink-100'
-                                        : 'hover:bg-gray-100'
+                                    ? 'bg-pink-100'
+                                    : 'hover:bg-gray-100'
                                     }`}
                             >
                                 <div
