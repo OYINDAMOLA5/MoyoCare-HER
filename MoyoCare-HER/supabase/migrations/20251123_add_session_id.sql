@@ -1,6 +1,8 @@
--- Add session_id column to messages table
-ALTER TABLE public.messages
-ADD COLUMN session_id UUID NOT NULL DEFAULT gen_random_uuid ();
+-- Add session_id column to messages table (nullable first to handle existing data)
+ALTER TABLE public.messages ADD COLUMN session_id UUID;
+
+-- Add language column to track conversation language
+ALTER TABLE public.messages ADD COLUMN language VARCHAR(10) DEFAULT 'en';
 
 -- Create index for faster session queries
 CREATE INDEX idx_messages_session_user ON public.messages (
@@ -9,6 +11,7 @@ CREATE INDEX idx_messages_session_user ON public.messages (
     created_at DESC
 );
 
--- Update constraint to ensure user_id + session_id uniqueness where needed
+-- Now set default for future inserts
 ALTER TABLE public.messages
-ADD CONSTRAINT fk_session_exists CHECK (session_id IS NOT NULL);
+ALTER COLUMN session_id
+SET DEFAULT gen_random_uuid ();
