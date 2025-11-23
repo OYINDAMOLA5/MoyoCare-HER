@@ -9,19 +9,19 @@ const corsHeaders = {
 // Detect language from text (improved heuristic)
 function detectLanguage(text: string): string {
   const lowerText = text.toLowerCase();
-  
+
   // Yoruba keywords and patterns
   const yorubaPatterns = [
     /\b(ṣ|ọ|ẹ|gini|kí|wà|jẹ|mo|o|e|a|wa)\b/gi, // Common Yoruba words/letters
     /[àáâèéêìíîòóôùúûãõ]/gi, // Yoruba diacritics
   ];
-  
+
   // Igbo keywords and patterns
   const igboPatterns = [
     /\b(ị|ụ|ọ|ị|kedu|ị|ọ|chọ|ị)\b/gi, // Common Igbo words
     /[àáèéìíòóùú]/gi, // Igbo diacritics
   ];
-  
+
   // Hausa keywords and patterns
   const hausaPatterns = [
     /\b(ɓ|ɗ|ƴ|sannu|na|shi|kida)\b/gi, // Common Hausa words
