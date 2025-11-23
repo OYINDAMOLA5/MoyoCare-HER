@@ -52,7 +52,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     try {
       setLoading(true);
       const sessionToLoad = selectedSessionId || currentSessionId;
-      
+
       console.log('Loading chat history for session:', sessionToLoad);
 
       const { data, error } = await supabase
@@ -111,7 +111,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
         console.error('Save error:', error);
         throw error;
       }
-      
+
       console.log('Message saved successfully');
     } catch (error: any) {
       console.error('Error saving message:', error);
