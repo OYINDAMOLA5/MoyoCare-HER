@@ -1,8 +1,7 @@
 # Welcome to your Lovable project
 
 ## Project info
-
-**URL**: https://lovable.dev/projects/fd718ee7-ee17-41eb-b112-926cbb90583c
+  MoyoCare-Her: https://moyocare-her.vercel.app/
 
 ## How can I edit this code?
 
@@ -71,3 +70,5 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+MoyoCare-Her is hosted on vercel: https://moyocare-her.vercel.app/
