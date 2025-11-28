@@ -51,42 +51,40 @@ export default function HomeDashboard({
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header 
-        className={`sticky top-0 z-10 transition-colors duration-300 ${
-          isPeriodMode 
-            ? 'bg-gradient-to-r from-accent/30 to-accent/20' 
-            : 'bg-card'
-        } border-b border-border shadow-sm`}
+      <header
+        className={`sticky top-0 z-10 transition-colors duration-300 ${isPeriodMode
+          ? 'bg-gradient-to-r from-accent/30 to-accent/20'
+          : 'bg-card'
+          } border-b border-border shadow-sm`}
       >
-        <div className="max-w-4xl mx-auto p-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {getGreeting()}, Sis 👋
-            </h1>
-            <p className="text-sm text-muted-foreground">How are you feeling today?</p>
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground truncate">
+                {getGreeting()}, Sis 👋
+              </h1>
+              <p className="text-sm text-muted-foreground">How are you feeling today?</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              className="text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSignOut}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </div>
 
-        {/* Cycle Context Toggle */}
-        <div className="max-w-4xl mx-auto px-4 pb-4">
-          <Card className={`p-4 transition-all duration-300 ${
-            isPeriodMode ? 'bg-accent/20 border-accent/40' : ''
-          }`}>
+          {/* Cycle Context Toggle */}
+          <Card className={`p-3 md:p-4 transition-all duration-300 ${isPeriodMode ? 'bg-accent/20 border-accent/40' : ''
+            }`}>
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="cycle-toggle" className="text-base font-semibold flex items-center gap-2">
+              <div className="space-y-0.5 flex-1 min-w-0">
+                <Label htmlFor="cycle-toggle" className="text-sm md:text-base font-semibold flex items-center gap-2">
                   <Sparkles className={`w-4 h-4 ${isPeriodMode ? 'text-accent' : 'text-muted-foreground'}`} />
-                  Cycle Context
+                  <span className="truncate">Cycle Context</span>
                 </Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {isPeriodMode ? 'Menstrual Phase Active' : 'Follicular Phase'}
                 </p>
               </div>
@@ -94,6 +92,7 @@ export default function HomeDashboard({
                 id="cycle-toggle"
                 checked={isPeriodMode}
                 onCheckedChange={onTogglePeriodMode}
+                className="ml-2 shrink-0"
               />
             </div>
           </Card>
@@ -101,12 +100,12 @@ export default function HomeDashboard({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto p-4 space-y-6">
+      <main className="max-w-4xl mx-auto p-3 md:p-4 space-y-4 md:space-y-6">
         {/* Quick Actions */}
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-3">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-4">
-            <Card 
+            <Card
               className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-primary to-primary/80 text-white"
               onClick={onNavigateToChat}
             >
@@ -115,7 +114,7 @@ export default function HomeDashboard({
               <p className="text-sm text-white/90 mt-1">I'm here to listen</p>
             </Card>
 
-            <Card 
+            <Card
               className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-secondary to-secondary/80 text-white"
               onClick={onOpenBreathing}
             >
@@ -131,13 +130,13 @@ export default function HomeDashboard({
           <h2 className="text-lg font-semibold text-foreground mb-3">Daily Wisdom</h2>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
             {wisdomTips.map((tip, index) => (
-              <Card 
+              <Card
                 key={index}
-                className="flex-shrink-0 w-64 p-4 cursor-pointer hover:shadow-lg transition-all"
+                className="flex-shrink-0 w-48 md:w-64 p-3 md:p-4 cursor-pointer hover:shadow-lg transition-all"
               >
-                <div className="text-3xl mb-2">{tip.icon}</div>
-                <h3 className="font-semibold text-foreground mb-1">{tip.title}</h3>
-                <p className="text-sm text-muted-foreground">{tip.text}</p>
+                <div className="text-2xl md:text-3xl mb-2">{tip.icon}</div>
+                <h3 className="font-semibold text-foreground mb-1 text-sm md:text-base">{tip.title}</h3>
+                <p className="text-xs md:text-sm text-muted-foreground leading-tight">{tip.text}</p>
               </Card>
             ))}
           </div>
@@ -146,8 +145,8 @@ export default function HomeDashboard({
         {/* Info Banner */}
         <Card className="p-4 bg-muted/50 border-border">
           <p className="text-sm text-muted-foreground text-center">
-            <strong>MoyoCare-Her:</strong> Your safe space for mental and menstrual wellness. 
-          I'm here for you, sis. 💜
+            <strong>MoyoCare-Her:</strong> Your safe space for mental and menstrual wellness.
+            I'm here for you, sis. 💜
           </p>
         </Card>
       </main>

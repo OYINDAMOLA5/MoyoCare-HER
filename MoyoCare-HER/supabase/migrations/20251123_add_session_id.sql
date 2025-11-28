@@ -2,7 +2,8 @@
 ALTER TABLE public.messages ADD COLUMN session_id UUID;
 
 -- Add language column to track conversation language
-ALTER TABLE public.messages ADD COLUMN language VARCHAR(10) DEFAULT 'en';
+ALTER TABLE public.messages
+ADD COLUMN language VARCHAR(10) DEFAULT 'en';
 
 -- Create index for faster session queries
 CREATE INDEX idx_messages_session_user ON public.messages (

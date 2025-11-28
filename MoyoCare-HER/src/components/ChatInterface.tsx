@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Brain, Send, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Brain, Send, ArrowLeft, AlertTriangle, MessageCircle, Menu } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { CyclePhase } from '@/utils/contextAwareness';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -30,6 +38,7 @@ interface ChatInterfaceProps {
 
 export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: ChatInterfaceProps) {
   const { t, i18n } = useTranslation();
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -55,11 +64,21 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
 
       console.log('Loading chat history for session:', sessionToLoad);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('messages')
         .select('*')
-        .eq('session_id', sessionToLoad)
         .order('created_at', { ascending: true });
+
+      // If we have a session ID, filter by it. Otherwise load all user messages
+      if (selectedSessionId) {
+        query = query.eq('session_id', sessionToLoad);
+      } else {
+        // For new session, only load messages with matching session_id
+        // (existing messages without session_id won't appear in new chats)
+        query = query.eq('session_id', currentSessionId);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Supabase error:', error);
@@ -203,52 +222,92 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
     <div className="h-screen bg-gradient-to-b from-pink-50 to-purple-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-pink-200 px-4 py-4 flex items-center justify-between">
-        <button
-          onClick={onBack}
-          title="Go back"
-          className="p-2 hover:bg-pink-100 rounded-lg transition"
-        >
-          <ArrowLeft className="w-5 h-5 text-pink-600" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            title="Go back"
+            className="p-2 hover:bg-pink-100 rounded-lg transition"
+          >
+            <ArrowLeft className="w-5 h-5 text-pink-600" />
+          </button>
+          {isMobile && (
+            <Drawer>
+              <DrawerTrigger asChild>
+                <button className="p-2 hover:bg-pink-100 rounded-lg transition">
+                  <MessageCircle className="w-5 h-5 text-pink-600" />
+                </button>
+              </DrawerTrigger>
+              <DrawerContent className="h-[80vh]">
+                <DrawerHeader>
+                  <DrawerTitle>Conversation History</DrawerTitle>
+                </DrawerHeader>
+                <div className="px-4 overflow-y-auto flex-1">
+                  <ConversationHistory
+                    onSelectSession={(sessionId) => {
+                      if (sessionId === null) {
+                        // New chat - create new session
+                        setCurrentSessionId(crypto.randomUUID());
+                        setMessages([]);
+                        setSelectedSessionId(null);
+                      } else {
+                        // Load existing session
+                        setSelectedSessionId(sessionId);
+                      }
+                    }}
+                    onNewChat={() => {
+                      setCurrentSessionId(crypto.randomUUID());
+                      setMessages([]);
+                      setSelectedSessionId(null);
+                    }}
+                    currentSessionId={selectedSessionId || currentSessionId}
+                  />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <Brain className="w-6 h-6 text-pink-600" />
-          <h1 className="text-2xl font-bold text-pink-600">Chat with Moyo</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-pink-600">Chat with Moyo</h1>
         </div>
-        <Select value={i18n.language} onValueChange={(lang) => i18n.changeLanguage(lang)}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder={t('language')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="en">{t('english')}</SelectItem>
-            <SelectItem value="yo">{t('yoruba')}</SelectItem>
-            <SelectItem value="ig">{t('igbo')}</SelectItem>
-            <SelectItem value="ha">{t('hausa')}</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex-shrink-0">
+          <Select value={i18n.language} onValueChange={(lang) => i18n.changeLanguage(lang)}>
+            <SelectTrigger className="w-24 md:w-32">
+              <SelectValue placeholder={t('language')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">{t('english')}</SelectItem>
+              <SelectItem value="yo">{t('yoruba')}</SelectItem>
+              <SelectItem value="ig">{t('igbo')}</SelectItem>
+              <SelectItem value="ha">{t('hausa')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Main Content - Flex Row with History Sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar History */}
-        <ConversationHistory
-          onSelectSession={(sessionId) => {
-            if (sessionId === null) {
-              // New chat - create new session
+        {/* Sidebar History - Desktop Only */}
+        {!isMobile && (
+          <ConversationHistory
+            onSelectSession={(sessionId) => {
+              if (sessionId === null) {
+                // New chat - create new session
+                setCurrentSessionId(crypto.randomUUID());
+                setSelectedSessionId(null);
+              } else {
+                // Load existing session
+                setSelectedSessionId(sessionId);
+              }
+            }}
+            onNewChat={() => {
               setCurrentSessionId(crypto.randomUUID());
               setMessages([]);
               setSelectedSessionId(null);
-            } else {
-              // Load existing session
-              setSelectedSessionId(sessionId);
-            }
-          }}
-          onNewChat={() => {
-            setCurrentSessionId(crypto.randomUUID());
-            setMessages([]);
-            setSelectedSessionId(null);
-          }}
-          currentSessionId={selectedSessionId || currentSessionId}
-        />
+            }}
+            currentSessionId={selectedSessionId || currentSessionId}
+          />
+        )}
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
@@ -293,12 +352,12 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs px-4 py-3 rounded-lg ${message.role === 'user'
+                    className={`max-w-xs md:max-w-sm lg:max-w-md px-3 md:md:m py-2amd:x-w-sm lg:max-w-md px-3 md:px-4 py-2 md:py-3 rounded-lg ${message.role === 'user'
                       ? 'bg-pink-500 text-white rounded-br-none'
                       : 'bg-white text-gray-800 border border-pink-200 rounded-bl-none'
                       }`}
                   >
-                    <p className="break-words">{message.content}</p>
+                    <p className="break-words text-sm md:text-base">{message.content}</p>
                   </div>
                 </div>
               ))

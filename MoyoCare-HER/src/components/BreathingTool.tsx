@@ -37,9 +37,9 @@ export default function BreathingTool({ isOpen, onClose }: BreathingToolProps) {
   if (!isOpen) return null;
 
   const phaseText = {
-    inhale: 'Breathe In (Simi...)',
+    inhale: 'Breathe In',
     hold: 'Hold',
-    exhale: 'Breathe Out (Fẹ...)',
+    exhale: 'Breathe Out',
   };
 
   const circleScale = {
