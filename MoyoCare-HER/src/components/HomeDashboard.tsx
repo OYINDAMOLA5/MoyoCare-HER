@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { MessageCircle, Wind, Menu, Sparkles, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { MessageCircle, Wind, Menu, Sparkles, LogOut, BookHeart, User } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -14,13 +14,53 @@ interface HomeDashboardProps {
   onTogglePeriodMode: (checked: boolean) => void;
 }
 
-const wisdomTips = [
-  { title: 'Exam Prep', text: 'Break study into small chunks, sis', icon: '📚' },
-  { title: 'Safety Tip', text: 'Always let someone know where you are', icon: '🛡️' },
-  { title: 'Self Love', text: 'You are enough, exactly as you are', icon: '💜' },
-  { title: 'Rest Well', text: 'Sleep na medicine, make you rest well', icon: '😴' },
-  { title: 'Stay Hydrated', text: 'Water na life, drink am well', icon: '💧' },
-];
+const wisdomCategories = {
+  "Exam Prep": [
+    { text: "Break study into small chunks, sis", icon: "📚" },
+    { text: "Teach what you learned to a friend", icon: "🗣️" },
+    { text: "Take 5 minute breaks every 25 minutes", icon: "⏱️" },
+    { text: "Drink water before your exam", icon: "💧" },
+    { text: "Review your notes before sleeping", icon: "🌙" },
+    { text: "Focus on understanding, not just memorizing", icon: "🧠" },
+    { text: "Practice with past questions today", icon: "📝" },
+  ],
+  "Safety Tip": [
+    { text: "Always let someone know where you are", icon: "🛡️" },
+    { text: "Trust your gut instinct, it's powerful", icon: "👀" },
+    { text: "Keep emergency numbers on speed dial", icon: "📞" },
+    { text: "Be aware of your surroundings when walking", icon: "🚶‍♀️" },
+    { text: "Share your live location with a trusted friend", icon: "📍" },
+    { text: "Don't share personal info with strangers", icon: "🤐" },
+    { text: "Meet new people in public places first", icon: "☕" },
+  ],
+  "Self Love": [
+    { text: "You are enough, exactly as you are", icon: "💜" },
+    { text: "Treat yourself with kindness today", icon: "🥰" },
+    { text: "Celebrate your small wins, they count", icon: "🎉" },
+    { text: "Don't compare your Chapter 1 to someone's Chapter 20", icon: "🚫" },
+    { text: "Your feelings are valid, sis", icon: "🫂" },
+    { text: "Forgive yourself for yesterday's mistakes", icon: "🕊️" },
+    { text: "Speak to yourself like you would a best friend", icon: "🗣️" },
+  ],
+  "Rest Well": [
+    { text: "Sleep na medicine, make you rest well", icon: "😴" },
+    { text: "Put your phone away 30 mins before bed", icon: "📵" },
+    { text: "Listen to your body when it says stop", icon: "🛑" },
+    { text: "A short nap can reset your brain", icon: "🔋" },
+    { text: "Create a calming bedtime routine", icon: "🧘‍♀️" },
+    { text: "Darken your room for better sleep", icon: "🌑" },
+    { text: "Reading a book helps you relax better than scrolling", icon: "📖" },
+  ],
+  "Stay Hydrated": [
+    { text: "Water na life, drink am well", icon: "💧" },
+    { text: "Drink a glass of water first thing in the morning", icon: "🌅" },
+    { text: "Carry a water bottle with you everywhere", icon: "🥤" },
+    { text: "Eating fruits counts as hydration too!", icon: "🍉" },
+    { text: "Drink water before you feel thirsty", icon: "🕒" },
+    { text: "Your skin glows when you drink water", icon: "✨" },
+    { text: "Replace one soda with water today", icon: "🔄" },
+  ]
+};
 
 export default function HomeDashboard({
   onNavigateToChat,
@@ -106,7 +146,7 @@ export default function HomeDashboard({
           <h2 className="text-lg font-semibold text-foreground mb-3">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-4">
             <Card
-              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-primary to-primary/80 text-white"
+              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-primary text-primary-foreground"
               onClick={onNavigateToChat}
             >
               <MessageCircle className="w-10 h-10 mb-3" />
@@ -115,12 +155,31 @@ export default function HomeDashboard({
             </Card>
 
             <Card
-              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br from-secondary to-secondary/80 text-white"
+              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-secondary text-secondary-foreground"
               onClick={onOpenBreathing}
             >
               <Wind className="w-10 h-10 mb-3" />
               <h3 className="font-bold text-lg">Quick Breathe</h3>
               <p className="text-sm text-white/90 mt-1">Calm your mind</p>
+            </Card>
+
+            {/* New Actions */}
+            <Card
+              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-accent text-accent-foreground"
+              onClick={() => window.location.href = '/journal'}
+            >
+              <BookHeart className="w-10 h-10 mb-3" />
+              <h3 className="font-bold text-lg">Journal</h3>
+              <p className="text-sm text-white/90 mt-1">Write your thoughts</p>
+            </Card>
+
+            <Card
+              className="p-6 cursor-pointer hover:shadow-lg transition-all bg-muted text-foreground"
+              onClick={() => window.location.href = '/profile'}
+            >
+              <User className="w-10 h-10 mb-3" />
+              <h3 className="font-bold text-lg">Profile</h3>
+              <p className="text-sm text-white/90 mt-1">Adjust your settings</p>
             </Card>
           </div>
         </section>
@@ -128,18 +187,7 @@ export default function HomeDashboard({
         {/* Daily Wisdom */}
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-3">Daily Wisdom</h2>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-            {wisdomTips.map((tip, index) => (
-              <Card
-                key={index}
-                className="flex-shrink-0 w-48 md:w-64 p-3 md:p-4 cursor-pointer hover:shadow-lg transition-all"
-              >
-                <div className="text-2xl md:text-3xl mb-2">{tip.icon}</div>
-                <h3 className="font-semibold text-foreground mb-1 text-sm md:text-base">{tip.title}</h3>
-                <p className="text-xs md:text-sm text-muted-foreground leading-tight">{tip.text}</p>
-              </Card>
-            ))}
-          </div>
+          <DailyWisdom />
         </section>
 
         {/* Info Banner */}
@@ -150,6 +198,58 @@ export default function HomeDashboard({
           </p>
         </Card>
       </main>
+    </div>
+  );
+}
+function DailyWisdom() {
+  const [dailyTips, setDailyTips] = useState<{ title: string; text: string; icon: string }[]>([]);
+
+  useEffect(() => {
+    const generateTips = async () => {
+      // 1. Get User ID (or use a default fallback for guests)
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id || "guest_user";
+
+      // 2. Get Date String
+      const dateStr = new Date().toDateString();
+
+      // 3. Generate Tips deterministically
+      const categories = Object.keys(wisdomCategories) as (keyof typeof wisdomCategories)[];
+      const newTips = categories.map(category => {
+        const tips = wisdomCategories[category];
+
+        // Simple hash function: UserID + Date + Category Name
+        const seed = userId + dateStr + category;
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+          hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+        }
+
+        const index = Math.abs(hash) % tips.length;
+        return {
+          title: category,
+          ...tips[index] // { text, icon }
+        };
+      });
+
+      setDailyTips(newTips);
+    };
+
+    generateTips();
+  }, []); // Run once on mount
+
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+      {dailyTips.map((tip, index) => (
+        <Card
+          key={index}
+          className="flex-shrink-0 w-64 p-4 cursor-pointer hover:shadow-lg transition-all border-l-4 border-l-primary"
+        >
+          <div className="text-3xl mb-3">{tip.icon}</div>
+          <h3 className="font-bold text-lg mb-1">{tip.title}</h3>
+          <p className="text-sm text-muted-foreground">{tip.text}</p>
+        </Card>
+      ))}
     </div>
   );
 }

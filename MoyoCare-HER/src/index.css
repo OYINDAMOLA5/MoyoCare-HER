@@ -8,42 +8,52 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* MoyoCare-Her Afro-Centered theme */
-    --background: 20 100% 97%;  /* Soft Cream/Beige #FFF5F0 */
-    --foreground: 25 30% 15%;
+    /* MoyoCare-Her "Neural Wellness" Theme */
+    --background: 210 20% 98%;
+    /* Cool White */
+    --foreground: 222 47% 11%;
+    /* Deep Blue-Black */
 
     --card: 0 0% 100%;
-    --card-foreground: 25 30% 15%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 30% 15%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 20 80% 45%;  /* Deep Terracotta/Burnt Orange #C05621 */
+    /* Primary: Deep Teal / Cyan - Tech + Wellness */
+    --primary: 189 94% 43%;
+    /* Cyan-600 #0891B2 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 50% 35%;  /* Deep Green #2F855A */
+    /* Secondary: Indigo - Calm, Neural, Mental Health */
+    --secondary: 226 71% 55%;
+    /* Indigo-500 */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 25 20% 90%;
-    --muted-foreground: 25 15% 40%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 330 70% 72%;  /* Soft Pink #F687B3 */
-    --accent-foreground: 330 30% 20%;
+    /* Accent: Soft Purple/Lavender */
+    --accent: 260 60% 94%;
+    --accent-foreground: 260 50% 30%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 25 20% 88%;
-    --input: 25 20% 88%;
-    --ring: 20 80% 45%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 189 94% 43%;
 
-    --radius: 1.5rem;  /* 24px rounded corners */
+    --radius: 1rem;
 
-    /* Custom MoyoCare colors */
-    --gradient-warm: linear-gradient(135deg, hsl(20, 80%, 45%), hsl(20, 75%, 55%));
-    --gradient-nature: linear-gradient(135deg, hsl(150, 50%, 35%), hsl(150, 45%, 45%));
-    --shadow-soft: 0 4px 20px rgba(192, 86, 33, 0.15);
-    --period-mode: 330 70% 72%;  /* Soft Pink for period mode */
+    /* Custom Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(189, 94%, 43%), hsl(226, 71%, 55%));
+    /* Teal to Indigo */
+    --gradient-nature: linear-gradient(135deg, hsl(160, 84%, 39%), hsl(189, 94%, 43%));
+    /* Green to Teal */
+    --shadow-soft: 0 10px 30px -10px rgba(8, 145, 178, 0.2);
+    --period-mode: 260 70% 65%;
+    /* Soft Purple for period mode */
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -56,39 +66,41 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 25 30% 8%;
-    --foreground: 25 10% 95%;
+    --background: 222 47% 11%;
+    /* Deep Slate / Neural Black */
+    --foreground: 210 40% 98%;
 
-    --card: 25 25% 12%;
-    --card-foreground: 25 10% 95%;
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 25 25% 10%;
-    --popover-foreground: 25 10% 95%;
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 20 80% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 189 90% 50%;
+    /* Bright Cyan for dark mode */
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 150 50% 40%;
+    --secondary: 226 70% 65%;
+    /* Bright Indigo */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 25 15% 18%;
-    --muted-foreground: 25 10% 60%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 330 60% 65%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 217 33% 20%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 25 15% 22%;
-    --input: 25 15% 22%;
-    --ring: 20 80% 50%;
+    --border: 217 33% 20%;
+    --input: 217 33% 20%;
+    --ring: 189 90% 50%;
 
-    /* Custom dark mode colors */
-    --gradient-warm: linear-gradient(135deg, hsl(20, 80%, 50%), hsl(20, 75%, 60%));
-    --gradient-nature: linear-gradient(135deg, hsl(150, 50%, 40%), hsl(150, 45%, 50%));
-    --shadow-soft: 0 4px 20px rgba(192, 86, 33, 0.2);
-    --period-mode: 330 60% 65%;
+    --gradient-warm: linear-gradient(135deg, hsl(189, 90%, 50%), hsl(226, 70%, 65%));
+    --gradient-nature: linear-gradient(135deg, hsl(160, 70%, 50%), hsl(189, 90%, 50%));
+    --shadow-soft: 0 10px 30px -10px rgba(8, 145, 178, 0.4);
+    --period-mode: 260 70% 65%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -115,7 +127,7 @@ All colors MUST be HSL.
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;

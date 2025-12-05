@@ -219,22 +219,22 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
   ];
 
   return (
-    <div className="h-screen bg-gradient-to-b from-pink-50 to-purple-50 flex flex-col">
+    <div className="h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-pink-200 px-4 py-4 flex items-center justify-between">
+      <div className="bg-card border-b border-border px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
             title="Go back"
-            className="p-2 hover:bg-pink-100 rounded-lg transition"
+            className="p-2 hover:bg-accent/50 rounded-lg transition"
           >
-            <ArrowLeft className="w-5 h-5 text-pink-600" />
+            <ArrowLeft className="w-5 h-5 text-primary" />
           </button>
           {isMobile && (
             <Drawer>
               <DrawerTrigger asChild>
-                <button className="p-2 hover:bg-pink-100 rounded-lg transition">
-                  <MessageCircle className="w-5 h-5 text-pink-600" />
+                <button className="p-2 hover:bg-accent/50 rounded-lg transition">
+                  <MessageCircle className="w-5 h-5 text-primary" />
                 </button>
               </DrawerTrigger>
               <DrawerContent className="h-[80vh]">
@@ -245,12 +245,10 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
                   <ConversationHistory
                     onSelectSession={(sessionId) => {
                       if (sessionId === null) {
-                        // New chat - create new session
                         setCurrentSessionId(crypto.randomUUID());
                         setMessages([]);
                         setSelectedSessionId(null);
                       } else {
-                        // Load existing session
                         setSelectedSessionId(sessionId);
                       }
                     }}
@@ -267,8 +265,8 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
           )}
         </div>
         <div className="flex items-center gap-3">
-          <Brain className="w-6 h-6 text-pink-600" />
-          <h1 className="text-xl md:text-2xl font-bold text-pink-600">Chat with Moyo</h1>
+          <Brain className="w-6 h-6 text-primary" />
+          <h1 className="text-xl md:text-2xl font-bold text-primary">Chat with Moyo</h1>
         </div>
         <div className="flex-shrink-0">
           <Select value={i18n.language} onValueChange={(lang) => i18n.changeLanguage(lang)}>
@@ -292,11 +290,9 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
           <ConversationHistory
             onSelectSession={(sessionId) => {
               if (sessionId === null) {
-                // New chat - create new session
                 setCurrentSessionId(crypto.randomUUID());
                 setSelectedSessionId(null);
               } else {
-                // Load existing session
                 setSelectedSessionId(sessionId);
               }
             }}
@@ -314,12 +310,12 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
           {/* Messages Container */}
           <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
             {crisisAlert.show && (
-              <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded">
-                <p className="text-red-800 font-semibold">⚠️ Your wellbeing matters</p>
-                <p className="text-red-700 text-sm mt-1">If you're in crisis, please reach out to a counselor or emergency service immediately.</p>
+              <div className="bg-destructive/10 border-l-4 border-destructive p-4 rounded">
+                <p className="text-destructive font-semibold">⚠️ Your wellbeing matters</p>
+                <p className="text-destructive text-sm mt-1">If you're in crisis, please reach out to a counselor or emergency service immediately.</p>
                 <button
                   onClick={() => setCrisisAlert({ show: false, type: '' })}
-                  className="text-xs text-red-600 hover:text-red-800 mt-2 underline"
+                  className="text-xs text-destructive hover:underline mt-2"
                 >
                   Dismiss
                 </button>
@@ -327,18 +323,18 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
             )}
             {loading ? (
               <div className="flex items-center justify-center h-full">
-                <p className="text-gray-500">Loading conversation...</p>
+                <p className="text-muted-foreground">Loading conversation...</p>
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <Brain className="w-12 h-12 text-pink-300 mb-4" />
-                <p className="text-gray-500 mb-4">No messages yet. Let's start chatting!</p>
+                <Brain className="w-12 h-12 text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground mb-4">No messages yet. Let's start chatting!</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {quickChips.map(chip => (
                     <button
                       key={chip}
                       onClick={() => handleSendMessage(chip)}
-                      className="px-4 py-2 bg-pink-200 text-pink-800 rounded-full hover:bg-pink-300 transition text-sm"
+                      className="px-4 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition text-sm"
                     >
                       {chip}
                     </button>
@@ -352,9 +348,9 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs md:max-w-sm lg:max-w-md px-3 md:md:m py-2amd:x-w-sm lg:max-w-md px-3 md:px-4 py-2 md:py-3 rounded-lg ${message.role === 'user'
-                      ? 'bg-pink-500 text-white rounded-br-none'
-                      : 'bg-white text-gray-800 border border-pink-200 rounded-bl-none'
+                    className={`max-w-xs md:max-w-sm lg:max-w-md px-3 md:px-4 py-2 md:py-3 rounded-lg ${message.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-br-none'
+                      : 'bg-card text-card-foreground border border-border rounded-bl-none'
                       }`}
                   >
                     <p className="break-words text-sm md:text-base">{message.content}</p>
@@ -364,11 +360,11 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
             )}
             {isThinking && (
               <div className="flex justify-start">
-                <div className="bg-white text-gray-800 border border-pink-200 rounded-lg rounded-bl-none px-4 py-3">
+                <div className="bg-card text-card-foreground border border-border rounded-lg rounded-bl-none px-4 py-3">
                   <div className="flex gap-2">
-                    <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
-                    <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse opacity-75"></div>
-                    <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse opacity-50"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse opacity-75"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse opacity-50"></div>
                   </div>
                 </div>
               </div>
@@ -376,7 +372,7 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
           </div>
 
           {/* Input Area */}
-          <div className="bg-white border-t border-pink-200 p-4 space-y-3">
+          <div className="bg-card border-t border-border p-4 space-y-3">
             <div className="flex gap-2">
               <Textarea
                 value={input}
@@ -388,13 +384,13 @@ export default function ChatInterface({ onBack, isPeriodMode, cyclePhase }: Chat
                     handleSendMessage(input);
                   }
                 }}
-                className="flex-1 resize-none border-pink-300 focus:border-pink-500"
+                className="flex-1 resize-none border-input focus:border-primary"
                 rows={2}
               />
               <Button
                 onClick={() => handleSendMessage(input)}
                 disabled={!input.trim() || isThinking}
-                className="bg-pink-600 hover:bg-pink-700 text-white flex items-center gap-2 h-fit"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2 h-fit"
               >
                 <Send className="w-4 h-4" />
                 {t('send_button')}
